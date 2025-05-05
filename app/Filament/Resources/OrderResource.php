@@ -13,6 +13,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Tables\Actions\Action;
 
 class OrderResource extends Resource
 {
@@ -44,7 +45,6 @@ class OrderResource extends Resource
                                 ->rule('regex:/^01[0-2,5]{1}[0-9]{8}$/')
                                 ->maxLength(11)
                                 ->minLength(11)
-                                ->placeholder('01XXXXXXXXX')
                                 ->unique(Order::class, 'customer_phone', ignoreRecord: true),
 
                             Forms\Components\TextInput::make('customer_address')
@@ -148,6 +148,12 @@ class OrderResource extends Resource
                 //
             ])
             ->actions([
+                Action::make('print')
+                ->label('Print')
+                ->icon('heroicon-o-printer')
+                ->color('info')
+                ->url(fn ($record) => route('orders.print', $record->id))
+                ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
 
