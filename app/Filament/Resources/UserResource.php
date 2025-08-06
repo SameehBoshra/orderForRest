@@ -6,7 +6,7 @@ use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
 use Filament\Forms;
-use Filament\Forms\Components\Section;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -14,6 +14,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Hash;
 
 class UserResource extends Resource
 {
@@ -21,46 +22,56 @@ class UserResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $navigationGroup = 'Users';
-    protected static ?int $navigationSort = 1;
     public static function getNavigationBadge(): ?string
     {
         return static::getModel()::count();
     }
-
-
-
+    public static function canCreate(): bool
+{
+    return auth()->user()?->name === 'Admin';
+}
+public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+{
+    return parent::getEloquentQuery()
+        ->where('name', '!=', 'Admin'); // أو اسمك الحقيقي
+}
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Section::make('User Information')
+                Forms\Components\Section::make('User')
+                    ->description('Data User Details')
                     ->schema([
-                        Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->minLength(2)
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('email')
-                    ->required()
-                    ->email()
-                    ->minLength(2)
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('password')
-                    ->password()
-                    ->required()
-                    ->confirmed()
-                    ->minLength(6)
-                    ->maxLength(255)
-                    ->dehydrated(fn ($state) => ! blank($state)),
-                Forms\Components\TextInput::make('password_confirmation')
-                    ->password()
-                    ->required()
-                    ->minLength(6)
-                    ->maxLength(255)
-                    ->dehydrated(false),
-                    ])
-                    ->columns(2),
+                        TextInput::make('name')
+                        ->label('Name')
+                        ->required()
+                        ->maxLength(255)
+                        ->minLength(3),
+                    TextInput::make('email')
+                        ->label('Email')
+                        ->required()
+                        ->email()
+                        ->maxLength(255)
+                        ->minLength(5)
+                        ->unique(User::class, 'email', ignoreRecord: true),
+                 TextInput::make('password')
+    ->required()
+    ->password()
+    ->minLength(6)
+    ->maxLength(255)
+    ->dehydrateStateUsing(fn($state) => Hash::make($state))
+    ->dehydrated(fn($state) => filled($state)),
 
+TextInput::make('password_confirmation')
+    ->label('Confirm Password')
+    ->required()
+    ->password()
+    ->same('password')
+    ->minLength(6)
+    ->maxLength(255)
+    ->dehydrated(false),
 
+            ])->columns(3),
 
             ]);
     }
@@ -70,20 +81,16 @@ class UserResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('id')
+                    ->label('ID')
                     ->sortable()
-                    ->searchable()
-                    ->label('ID'),
+                    ->searchable(),
                 TextColumn::make('name')
-                    ->sortable()
-                    ->searchable()
-                    ->label('Name'),
-
+                    ->label('Name')
+                    ->sortable(),
                 TextColumn::make('email')
+                    ->label('Email')
                     ->sortable()
-                    ->searchable()
-                    ->label('Email'),
-
-
+                    ->searchable(),
             ])
             ->filters([
                 //
